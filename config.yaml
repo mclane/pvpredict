@@ -1,0 +1,17 @@
+dwdstation: P444
+
+pvsetup:
+  peakpower: 6.7 # kWp
+  efficiencyfactor: 0.8
+
+evcc:
+  pvthreshold: 2000.0
+  basicload: 700.0
+
+mqttbroker:
+  name: 192.168.0.38
+  port: 1883
+  user: 
+  password: 
+  publishTime: 22:00 # UTC time when to publish new mode value
+
