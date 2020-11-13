@@ -203,9 +203,14 @@ func publishToMQTT(message, bname, bport, buser, bpwd string) {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
+
+	// publish message
 	token := client.Publish("evcc/loadpoints/0/mode/set", 0, false, message)
 	token.Wait()
 	fmt.Printf("Mode %s published\n", message)
+
+	// disconnect
+	client.Disconnect(2500)
 }
 
 func check() {
