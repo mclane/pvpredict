@@ -17,6 +17,8 @@ import (
 	"github.com/go-co-op/gocron"
 )
 
+// The Config struct defines the structure of the yaml file
+// which contains the details of the configuration
 type Config struct {
 	Dwdstation string `yaml:"dwdstation"`
 
@@ -41,6 +43,7 @@ type Config struct {
 
 var Cfg Config
 
+// The function getConf reads config.yaml and returns the current configuration parameters
 func (c *Config) getConf() *Config {
 
 	yamlFile, err := ioutil.ReadFile("config.yaml")

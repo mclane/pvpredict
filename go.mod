@@ -11,5 +11,7 @@ require (
 	github.com/jasonlvhit/gocron v0.0.1
 	github.com/mclane/xmlquery v1.3.4-0.20201111142412-bd3f7225372f
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
+	golang.org/x/tools v0.0.0-20201113164040-559c4acc06b6 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
