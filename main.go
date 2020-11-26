@@ -28,8 +28,10 @@ type Config struct {
 	} `yaml:"pvsetup"`
 
 	Evcc struct {
-		Pvthreshold float64 `yaml:"pvthreshold"`
-		Basicload   float64 `yaml:"basicload"`
+		Pvthreshold   float64 `yaml:"pvthreshold"`
+		Basicload     float64 `yaml:"basicload"`
+		Pvtimelimit   int     `yaml:"pvtimelimit"`
+		Basetimelimit int     `yaml:"basetimelimit"`
 	} `yaml:"evcc"`
 
 	Mqttbroker struct {
@@ -208,7 +210,7 @@ func publishToMQTT(message, bname, bport, buser, bpwd string) {
 	}
 
 	// publish message
-	token := client.Publish("evcc/loadpoints/0/mode/set", 0, false, message)
+	token := client.Publish("evcc/loadpoints/1/mode/set", 0, false, message)
 	token.Wait()
 	fmt.Printf("Mode %s published\n", message)
 
@@ -233,10 +235,10 @@ func check() {
 
 	// define evcc charging mode
 	mode := ""
-	if timeabovepv >= 2 {
+	if timeabovepv >= Cfg.Evcc.Pvtimelimit {
 		mode = "pv"
 	} else {
-		if timeabovebload >= 0 {
+		if timeabovebload >= Cfg.Evcc.Basetimelimit {
 			mode = "minpv"
 		} else {
 			mode = "now"
