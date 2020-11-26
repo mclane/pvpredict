@@ -34,5 +34,6 @@ so no significant cpu load is generated since it runs only once per day. All dat
 In order to find the code for the nearst DWD prediction grid location, have a look to this [map](https://wettwarn.de/mosmix/mosmix.html). This code must be 
 entered to the respective field in the config file.  
 
-Do not expect high precision results. This is still work in progress and has not been extensively tested.
+Do not expect high precision results. This is still work in progress and has not been extensively tested. An example containing prediciton data
+(MOSMIX_L_2020111109_P444.kml) is provided in order to demonstrate the data structure. For testing purposes, simply adjust the value of publishTime in the config.yaml in order to see the program activity.
 
