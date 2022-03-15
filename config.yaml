@@ -7,13 +7,13 @@ pvsetup:
 evcc:
   pvthreshold: 2000.0
   basicload: 700.0
-  pvtimelimit: 2 # minimum time for pv charging
-  basetimelimit: 2 # minimum time for min+pv charging
+  pvtimelimit: 2 # minimum time for pv washing
+  basetimelimit: 2 # minimum time for partial pv washing
 
 mqttbroker:
-  name: 192.168.0.38
-  port: 1883
-  user: 
-  password: 
-  publishTime: 08:38 # UTC time when to publish new mode value
+  name: "192.168.0.38"
+  port: "1883"
+  user: ""
+  password: ""
+  publishTime: 08:00 # UTC time when to publish new mode value
 
