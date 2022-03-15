@@ -4,7 +4,7 @@ pvsetup:
   peakpower: 6.7 # kWp
   efficiencyfactor: 0.8
 
-evcc:
+wash:
   pvthreshold: 2000.0
   basicload: 700.0
   pvtimelimit: 2 # minimum time for pv washing
@@ -15,5 +15,5 @@ mqttbroker:
   port: "1883"
   user: ""
   password: ""
-  publishTime: 08:00 # UTC time when to publish new mode value
+  publishTime: 08:13 # UTC time when to publish new mode value
 

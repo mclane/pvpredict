@@ -27,12 +27,12 @@ type Config struct {
 		Efficiencyfactor float64 `yaml:"efficiencyfactor"`
 	} `yaml:"pvsetup"`
 
-	Evcc struct {
+	Wash struct {
 		Pvthreshold   float64 `yaml:"pvthreshold"`
 		Basicload     float64 `yaml:"basicload"`
 		Pvtimelimit   int     `yaml:"pvtimelimit"`
 		Basetimelimit int     `yaml:"basetimelimit"`
-	} `yaml:"evcc"`
+	} `yaml:"wash"`
 
 	Mqttbroker struct {
 		Name        string `yaml:"name"`
@@ -259,8 +259,8 @@ func check() {
 	// copy stuff from cfg
 	DWDstation := Cfg.Dwdstation
 	pvarea := Cfg.Pvsetup.Peakpower * Cfg.Pvsetup.Efficiencyfactor
-	thr := Cfg.Evcc.Pvthreshold
-	bload := Cfg.Evcc.Basicload
+	thr := Cfg.Wash.Pvthreshold
+	bload := Cfg.Wash.Basicload
 	broker := Cfg.Mqttbroker.Name
 	port := Cfg.Mqttbroker.Port
 
@@ -270,12 +270,12 @@ func check() {
 	// calculate threshold times
 	pred := calcPVChargeTime(zeit, radWert, thr, bload)
 
-	// define evcc charging mode
+	// define Wash charging mode
 	mode := ""
-	if pred.timeabovepv >= Cfg.Evcc.Pvtimelimit {
+	if pred.timeabovepv >= Cfg.Wash.Pvtimelimit {
 		mode = "green"
 	} else {
-		if pred.timeabovebload >= Cfg.Evcc.Basetimelimit {
+		if pred.timeabovebload >= Cfg.Wash.Basetimelimit {
 			mode = "yellow"
 		} else {
 			mode = "red"
