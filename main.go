@@ -43,6 +43,14 @@ type Config struct {
 	} `yaml:"mqttbroker"`
 }
 
+type Prediction struct {
+	timeabovepv    int   // time above pv limit
+	timeabovebload int   // time above basic limit
+	idealtime      int64 // starttime: above pv limit
+	goodtime       int64 // starttime: above base limit
+	yield          float64
+}
+
 var Cfg Config
 
 // The function getConf reads config.yaml and returns the current configuration parameters
@@ -145,17 +153,20 @@ func readDWDData(st string, pvarea float64) ([]int64, []float64) {
 	return zeit, radWert
 }
 
-func calcPVChargeTime(zeit []int64, radWert []float64, pvthr, bload float64) (int, int) {
+func calcPVChargeTime(zeit []int64, radWert []float64, pvthr, bload float64) Prediction {
+	var p Prediction
 	// calculate sum, time above thresholds and max values
 	today := time.Now()
-	tomorrow := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.Local)
-	tomorrow = tomorrow.AddDate(0, 0, 1)
-	t1 := tomorrow.Unix()
-	t2 := tomorrow.AddDate(0, 0, 1).Unix()
+	//tomorrow := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.Local)
+	//tomorrow = tomorrow.AddDate(0, 0, 1)
+	t1 := today.Unix()
+	t2 := today.AddDate(0, 0, 1).Unix()
 	sumkWh := 0.0
 	maxkW := 0.0
 	timeabovepv := 0
 	timeabovebload := 0
+	sz := zeit[0]
+	gz := zeit[0]
 	for i, z := range zeit {
 		if z >= t1 && z <= t2 {
 			sumkWh = sumkWh + radWert[i]
@@ -164,20 +175,46 @@ func calcPVChargeTime(zeit []int64, radWert []float64, pvthr, bload float64) (in
 			}
 			if radWert[i] > pvthr {
 				timeabovepv++
+				if sz == zeit[0] {
+					sz = zeit[i]
+				}
+
 			}
 			if radWert[i] > bload {
 				timeabovebload++
+				if gz == zeit[0] {
+					gz = zeit[i]
+				}
 			}
 		}
 	}
 
+	// store esults in return struct
+	p.timeabovepv = timeabovepv
+	p.timeabovebload = timeabovebload
+	p.idealtime = sz
+	p.goodtime = gz
+	p.yield = sumkWh
+
 	// printout resuts
-	fmt.Printf("erwartete Energiegewinnung morgen: %.2f kWh\n", sumkWh/1000)
-	fmt.Printf("Maximalleistung morgen: %.2f kW\n", maxkW/1000)
+	fmt.Printf("erwartete Energiegewinnung heute: %.2f kWh\n", sumkWh/1000)
+	fmt.Printf("Maximalleistung heute: %.2f kW\n", maxkW/1000)
 	fmt.Printf("Zeit oberhalb PV Schwelle: %d h\n", timeabovepv)
 	fmt.Printf("Zeit oberhalb Basis Schwelle: %d h\n", timeabovebload)
+	if sz != zeit[0] {
+		fmt.Printf("Startzeit für reoines PV-Waschen: %s\n", time.Unix(sz, 0))
+	} else {
+		p.idealtime = 0
+		fmt.Println("Heute kann nicht PV-gewaschen werden")
+	}
+	if gz != zeit[0] {
+		fmt.Printf("Startzeit für PV-unterstütztes Waschen: %s\n", time.Unix(gz, 0))
+	} else {
+		p.goodtime = 0
+		fmt.Println("Heute kann nicht PV-unterstützt gewaschen werden")
+	}
 
-	return timeabovepv, timeabovebload
+	return p
 }
 
 // MQTT callback functions
@@ -194,11 +231,11 @@ var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err
 }
 
 //
-func publishToMQTT(message, bname, bport, buser, bpwd string) {
+func publishToMQTT(topic, message, bname, bport, buser, bpwd string) {
 	// connect to MQTT broker
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(fmt.Sprintf("tcp://%s:%s", bname, bport))
-	opts.SetClientID("evcc-predict")
+	opts.SetClientID("pv-predict")
 	opts.SetUsername(buser)
 	opts.SetPassword(bpwd)
 	opts.SetDefaultPublishHandler(messagePubHandler)
@@ -210,9 +247,9 @@ func publishToMQTT(message, bname, bport, buser, bpwd string) {
 	}
 
 	// publish message
-	token := client.Publish("evcc/loadpoints/1/mode/set", 0, false, message)
+	token := client.Publish(topic, 0, false, message)
 	token.Wait()
-	fmt.Printf("Mode %s published\n", message)
+	fmt.Printf("Topic %s/%s published\n", topic, message)
 
 	// disconnect
 	client.Disconnect(2500)
@@ -231,24 +268,26 @@ func check() {
 	zeit, radWert := readDWDData(DWDstation, pvarea)
 
 	// calculate threshold times
-	timeabovepv, timeabovebload := calcPVChargeTime(zeit, radWert, thr, bload)
+	pred := calcPVChargeTime(zeit, radWert, thr, bload)
 
 	// define evcc charging mode
 	mode := ""
-	if timeabovepv >= Cfg.Evcc.Pvtimelimit {
-		mode = "pv"
+	if pred.timeabovepv >= Cfg.Evcc.Pvtimelimit {
+		mode = "green"
 	} else {
-		if timeabovebload >= Cfg.Evcc.Basetimelimit {
-			mode = "minpv"
+		if pred.timeabovebload >= Cfg.Evcc.Basetimelimit {
+			mode = "yellow"
 		} else {
-			mode = "now"
+			mode = "red"
 		}
 
 	}
-	fmt.Printf("EVCC Mode: %s\n", mode)
-
-	// publish mode for next day
-	publishToMQTT(mode, broker, port, "", "")
+	fmt.Printf("Mode: %s\n", mode)
+	// publish results
+	publishToMQTT("pv-predict/mode", mode, broker, port, "", "")
+	publishToMQTT("pv-predict/yield", fmt.Sprintf("%.2f", pred.yield/1000.0), broker, port, "", "")
+	publishToMQTT("pv-predict/bstartt", fmt.Sprintf("%s", time.Unix(pred.idealtime, 0)), broker, port, "", "")
+	publishToMQTT("pv-predict/gstartt", fmt.Sprintf("%s", time.Unix(pred.goodtime, 0)), broker, port, "", "")
 }
 
 func main() {
